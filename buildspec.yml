@@ -1,0 +1,33 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain $CODEARTIFACT_DOMAIN --domain-owner $AWS_ACCOUNT_ID --region $AWS_DEFAULT_REGION --query authorizationToken --output text`
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+  build:
+    commands:
+      - echo Build started on `date`
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG \
+        --build-arg AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
+        --build-arg CODEARTIFACT_AUTH_TOKEN=$CODEARTIFACT_AUTH_TOKEN \
+        --build-arg CODEARTIFACT_DOMAIN=$CODEARTIFACT_DOMAIN \
+        --build-arg CODEARTIFACT_REPOSITORY=$CODEARTIFACT_REPOSITORY \
+        --build-arg AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID \
+        .
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Pushing Docker image to ECR...
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Creating deployment configuration...
+      - echo $REPOSITORY_URI:$IMAGE_TAG > image_uri.txt
+      - sed -i "s|IMAGE_URI_PLACEHOLDER|$REPOSITORY_URI:$IMAGE_TAG|g" scripts/start_application.sh
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts/**/*
+    - image_uri.txt
+  name: flask-demo-$(date +%Y-%m-%d)
