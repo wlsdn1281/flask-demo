@@ -30,4 +30,4 @@ artifacts:
     - appspec.yml
     - scripts/**/*
     - image_uri.txt
-  name: flask-demo-$(date +%Y-%m-%d)
+  name: flask-demo-artifacts

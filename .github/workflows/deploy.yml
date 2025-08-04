@@ -35,38 +35,37 @@ jobs:
         aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
         docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
         
+    - name: Generate version tag
+      run: |
+        export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+        LATEST_TAG=$(aws ecr describe-images --repository-name $IMAGE_REPO_NAME --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text 2>/dev/null || echo "0")
+        if [ "$LATEST_TAG" = "None" ] || [ "$LATEST_TAG" = "null" ] || [ "$LATEST_TAG" = "0" ]; then
+          NEW_TAG=1
+        else
+          NEW_TAG=$((LATEST_TAG + 1))
+        fi
+        echo "IMAGE_TAG=$NEW_TAG" >> $GITHUB_ENV
+        echo "Using image tag: $NEW_TAG"
+        
     - name: Build Docker image
       run: |
         export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-        docker build -t $IMAGE_REPO_NAME:${{ github.sha }} \
+        docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG \
           --build-arg AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
           --build-arg CODEARTIFACT_AUTH_TOKEN=$CODEARTIFACT_AUTH_TOKEN \
           --build-arg CODEARTIFACT_DOMAIN=$CODEARTIFACT_DOMAIN \
           --build-arg CODEARTIFACT_REPOSITORY=$CODEARTIFACT_REPOSITORY \
           --build-arg AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID \
           .
-        docker tag $IMAGE_REPO_NAME:${{ github.sha }} $REPOSITORY_URI:${{ github.sha }}
+        docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $REPOSITORY_URI:$IMAGE_TAG
         
     - name: Push to ECR
       run: |
         export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-        docker push $REPOSITORY_URI:${{ github.sha }}
+        docker push $REPOSITORY_URI:$IMAGE_TAG
         
     - name: Create deployment artifacts
       run: |
         export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-        echo $REPOSITORY_URI:${{ github.sha }} > image_uri.txt
-        sed -i "s|IMAGE_URI_PLACEHOLDER|$REPOSITORY_URI:${{ github.sha }}|g" scripts/start_application.sh
-        
-    - name: Upload artifacts to S3
-      run: |
-        zip -r flask-demo-${{ github.sha }}.zip appspec.yml scripts/ image_uri.txt
-        aws s3 cp flask-demo-${{ github.sha }}.zip s3://$CODEDEPLOY_S3_BUCKET/flask-demo-${{ github.sha }}.zip
-        
-    - name: Create CodeDeploy deployment
-      run: |
-        aws deploy create-deployment \
-          --application-name $CODEDEPLOY_APPLICATION_NAME \
-          --deployment-group-name $CODEDEPLOY_DEPLOYMENT_GROUP \
-          --s3-location bucket=$CODEDEPLOY_S3_BUCKET,key=flask-demo-${{ github.sha }}.zip,bundleType=zip \
-          --description "Deployment from GitHub Actions - ${{ github.sha }}"
+        echo $REPOSITORY_URI:$IMAGE_TAG > image_uri.txt
+        sed -i "s|IMAGE_URI_PLACEHOLDER|$REPOSITORY_URI:$IMAGE_TAG|g" scripts/start_application.sh
