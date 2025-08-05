@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on:
-      - codebuild-github-runner-test-python-${{ github.run_id }}-${{ github.run_attempt }}
+      - codebuild-flask-demo-private-${{ github.run_id }}-${{ github.run_attempt }}
     
     steps:
     - name: Checkout code
