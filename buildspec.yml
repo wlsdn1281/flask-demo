@@ -12,7 +12,16 @@ phases:
   build:
     commands:
       - echo Build started on `date`
-      - docker buildx build --load -t $REPOSITORY_URI:$IMAGE_TAG --build-arg AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION --build-arg CODEARTIFACT_AUTH_TOKEN=$CODEARTIFACT_AUTH_TOKEN --build-arg CODEARTIFACT_DOMAIN=$CODEARTIFACT_DOMAIN --build-arg CODEARTIFACT_REPOSITORY=$CODEARTIFACT_REPOSITORY --build-arg AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID .
+      - echo "Token length:" ${#CODEARTIFACT_AUTH_TOKEN}
+      - echo "Token first 20 chars:" ${CODEARTIFACT_AUTH_TOKEN:0:20}
+      - |
+        docker buildx build --load -t $REPOSITORY_URI:$IMAGE_TAG \
+          --build-arg AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
+          --build-arg "CODEARTIFACT_AUTH_TOKEN=$CODEARTIFACT_AUTH_TOKEN" \
+          --build-arg CODEARTIFACT_DOMAIN=$CODEARTIFACT_DOMAIN \
+          --build-arg CODEARTIFACT_REPOSITORY=$CODEARTIFACT_REPOSITORY \
+          --build-arg AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID \
+          .
   post_build:
     commands:
       - echo Pushing Docker image to ECR...
