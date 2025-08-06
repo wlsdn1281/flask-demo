@@ -2,7 +2,7 @@ name: Flask Demo CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -47,17 +47,31 @@ jobs:
         echo "IMAGE_TAG=$NEW_TAG" >> $GITHUB_ENV
         echo "Using image tag: $NEW_TAG"
         
+    - name: Debug environment variables
+      run: |
+        echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
+        echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+        echo "IMAGE_REPO_NAME: $IMAGE_REPO_NAME"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "CODEARTIFACT_DOMAIN: $CODEARTIFACT_DOMAIN"
+        echo "CODEARTIFACT_REPOSITORY: $CODEARTIFACT_REPOSITORY"
+        echo "CODEARTIFACT_AUTH_TOKEN: ${CODEARTIFACT_AUTH_TOKEN:0:10}..."
+        
     - name: Build Docker image
       run: |
         export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-        docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG \
+        echo "Building Docker image: $IMAGE_REPO_NAME:$IMAGE_TAG"
+        echo "Repository URI: $REPOSITORY_URI"
+        
+        docker buildx build --load \
+          -t $REPOSITORY_URI:$IMAGE_TAG \
           --build-arg AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION \
-          --build-arg CODEARTIFACT_AUTH_TOKEN=$CODEARTIFACT_AUTH_TOKEN \
+          --build-arg CODEARTIFACT_AUTH_TOKEN="$CODEARTIFACT_AUTH_TOKEN" \
           --build-arg CODEARTIFACT_DOMAIN=$CODEARTIFACT_DOMAIN \
           --build-arg CODEARTIFACT_REPOSITORY=$CODEARTIFACT_REPOSITORY \
           --build-arg AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID \
+          --progress=plain \
           .
-        docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $REPOSITORY_URI:$IMAGE_TAG
         
     - name: Push to ECR
       run: |

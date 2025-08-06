@@ -17,7 +17,8 @@ ARG AWS_DEFAULT_REGION
 
 # pip.conf 생성
 RUN echo "[global]" > /etc/pip.conf && \
-    echo "index-url = https://${CODEARTIFACT_AUTH_TOKEN}@${CODEARTIFACT_DOMAIN}-${AWS_ACCOUNT_ID}.d.codeartifact.${AWS_DEFAULT_REGION}.amazonaws.com/pypi/${CODEARTIFACT_REPOSITORY}/simple/" >> /etc/pip.conf
+    echo "index-url = https://${CODEARTIFACT_AUTH_TOKEN}@${CODEARTIFACT_DOMAIN}-${AWS_ACCOUNT_ID}.d.codeartifact.${AWS_DEFAULT_REGION}.amazonaws.com/pypi/${CODEARTIFACT_REPOSITORY}/simple/" >> /etc/pip.conf && \
+    echo "trusted-host = ${CODEARTIFACT_DOMAIN}-${AWS_ACCOUNT_ID}.d.codeartifact.${AWS_DEFAULT_REGION}.amazonaws.com" >> /etc/pip.conf
 
 # 패키지 설치
 COPY requirements.txt .
