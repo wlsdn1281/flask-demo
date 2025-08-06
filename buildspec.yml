@@ -6,9 +6,9 @@ phases:
       - export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain $CODEARTIFACT_DOMAIN --domain-owner $AWS_ACCOUNT_ID --region $AWS_DEFAULT_REGION --query authorizationToken --output text`
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - export REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
-      - LATEST_TAG=$(aws ecr describe-images --repository-name $IMAGE_REPO_NAME --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' --output text 2>/dev/null || echo "0")
-      - if [ "$LATEST_TAG" = "None" ] || [ "$LATEST_TAG" = "null" ] || [ "$LATEST_TAG" = "0" ]; then export IMAGE_TAG=1; else export IMAGE_TAG=$((LATEST_TAG + 1)); fi
-      - echo "Using image tag: $IMAGE_TAG"
+      - 'LATEST_TAG=$(aws ecr describe-images --repository-name $IMAGE_REPO_NAME --query "sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]" --output text 2>/dev/null || echo "0")'
+      - 'if [ "$LATEST_TAG" = "None" ] || [ "$LATEST_TAG" = "null" ] || [ "$LATEST_TAG" = "0" ]; then export IMAGE_TAG=1; else export IMAGE_TAG=$((LATEST_TAG + 1)); fi'
+      - echo "Using image tag:" $IMAGE_TAG
   build:
     commands:
       - echo Build started on `date`
