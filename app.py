@@ -1,10 +1,14 @@
-from flask import Flask, render_template
+from flask import Flask
 
 app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return '<h1>Flask Demo - CodeDeploy Success!</h1><p>Version: 1.0</p>'
+
+@app.route('/health')
+def health():
+    return {'status': 'healthy'}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
